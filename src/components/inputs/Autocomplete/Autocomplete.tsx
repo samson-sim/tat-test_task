@@ -56,7 +56,7 @@ export const Autocomplete: FC<AutocompleteProps> = ({
   };
 
   const handleChange = (value: string) => {
-    if (!field.value) {
+    if (!field.value?.id) {
       handleChangeInputValue(value);
     }
   };

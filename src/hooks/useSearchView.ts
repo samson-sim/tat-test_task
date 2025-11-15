@@ -13,6 +13,7 @@ export const useSearchView = () => {
     endDate: new Date(t.endDate),
     price: t.price,
     currency: t.currency.toUpperCase(),
+    hotelId: t.hotel.id,
   }));
 
   return {

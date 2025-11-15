@@ -5,3 +5,5 @@ export * from "./PriceView";
 export * from "./ErrorView";
 export * from "./DateRangeView";
 export * from "./LocationView";
+export * from "./TourPageView";
+export * from "./HotelServicesView";

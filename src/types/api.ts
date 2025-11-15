@@ -1,5 +1,6 @@
 export type Country = {
   id: string;
+  countryId: string;
   name: string;
   flag: string;
   type: "country";
