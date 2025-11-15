@@ -1,11 +1,15 @@
-import { SearchForm } from "../components/form";
+"use client";
 
-export default function Home() {
+import { SearchForm, SearchStatus } from "../components/form";
+import { SearchProvider } from "../context";
+
+export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+    <SearchProvider>
+      <div className="w-full px-4 flex flex-col items-center gap-6">
         <SearchForm />
+        <SearchStatus />
       </div>
-    </div>
+    </SearchProvider>
   );
 }

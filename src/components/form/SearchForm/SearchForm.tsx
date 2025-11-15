@@ -3,8 +3,15 @@
 import { FC } from "react";
 import { Form } from "../BaseForm";
 import { SearchInput } from "../../inputs";
+import { useSearch } from "../../../context";
 
 export const SearchForm: FC = () => {
+  const { startSearch } = useSearch();
+
+  const handleSubmit = async (countryId: string) => {
+    await startSearch(countryId);
+  };
+
   return (
     <div className="w-full max-w-md mx-auto p-6 bg-white rounded-xl shadow-md">
       <h2 className="text-center text-lg font-semibold mb-4">
@@ -13,10 +20,13 @@ export const SearchForm: FC = () => {
 
       <Form
         defaultValues={{
-          search: "",
+          search: {
+            id: "",
+            countryId: "",
+          },
         }}
         onSubmit={(values) => {
-          console.log(values);
+          handleSubmit(values.search.countryId || values.search.id);
         }}
       >
         <div className="flex items-start gap-3">
