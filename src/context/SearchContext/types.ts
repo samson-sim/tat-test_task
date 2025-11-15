@@ -1,5 +1,24 @@
 export type SearchStatus = "idle" | "loading" | "waiting" | "success" | "error";
 
+export interface Hotel {
+  id: number;
+  name: string;
+  img: string;
+  cityId: number;
+  cityName: string;
+  countryId: string;
+  countryName: string;
+}
+
+export interface JoinedTour {
+  priceId: string;
+  hotel: Hotel;
+  startDate: string;
+  endDate: string;
+  price: number;
+  currency: string;
+}
+
 export interface Price {
   id: string;
   amount: number;
@@ -24,4 +43,5 @@ export interface SearchContextValue {
   prices: Price[];
   startSearch: (countryId: string) => Promise<void>;
   reset: () => void;
+  joinedTours: JoinedTour[];
 }

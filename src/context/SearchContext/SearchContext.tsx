@@ -2,30 +2,31 @@
 
 import React, {
   createContext,
+  FC,
+  ReactNode,
   useCallback,
   useContext,
   useMemo,
   useState,
 } from "react";
-import { startSearchPrices, getSearchPrices } from "@/lib/api";
+import { startSearchPrices, getSearchPrices, getHotels } from "@/lib/api";
 import {
   SearchContextValue,
   SearchStatus,
   SearchResultRaw,
   Price,
+  Hotel,
+  JoinedTour,
 } from "./types";
 
 const MAX_RETRIES = 2;
 
-export const SearchContext = createContext<SearchContextValue | undefined>(
-  undefined
-);
+const SearchContext = createContext<SearchContextValue | undefined>(undefined);
 
-export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const SearchProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [status, setStatus] = useState<SearchStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+
   const [currentCountryId, setCurrentCountryId] = useState<string | null>(null);
   const [currentResult, setCurrentResult] = useState<SearchResultRaw | null>(
     null
@@ -33,12 +34,58 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [cache, setCache] = useState<Record<string, SearchResultRaw>>({});
 
+  const [hotelsCache, setHotelsCache] = useState<
+    Record<string, Record<string, Hotel>>
+  >({});
+
   const isLoading = status === "loading" || status === "waiting";
 
   const prices = useMemo(
     () => (currentResult ? Object.values(currentResult.pricesById) : []),
     [currentResult]
   );
+
+  const loadHotels = useCallback(
+    async (countryId: string) => {
+      if (hotelsCache[countryId]) return hotelsCache[countryId];
+
+      const resp = await getHotels(countryId);
+      const data = await resp.json();
+
+      setHotelsCache((prev) => ({
+        ...prev,
+        [countryId]: data,
+      }));
+
+      return data;
+    },
+    [hotelsCache]
+  );
+
+  const joinedTours = useMemo<JoinedTour[]>(() => {
+    if (!currentResult || !currentCountryId) return [];
+
+    const hotels = hotelsCache[currentCountryId];
+    if (!hotels) return [];
+
+    return Object.values(currentResult.pricesById)
+      .map((price) => {
+        const hotel = Object.values(hotels).find(
+          (hotel) => String(hotel.id) === String(price.hotelID)
+        );
+        if (!hotel) return null;
+
+        return {
+          priceId: price.id,
+          hotel,
+          startDate: price.startDate,
+          endDate: price.endDate,
+          price: price.amount,
+          currency: price.currency,
+        } as JoinedTour;
+      })
+      .filter(Boolean) as JoinedTour[];
+  }, [currentResult, currentCountryId, hotelsCache]);
 
   const pollPrices = useCallback(
     async (
@@ -49,7 +96,6 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({
     ): Promise<void> => {
       if (waitUntil) {
         const waitMs = new Date(waitUntil).getTime() - Date.now();
-
         if (waitMs > 0) {
           setStatus("waiting");
           await new Promise((res) => setTimeout(res, waitMs));
@@ -74,6 +120,9 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({
           ...prev,
           [countryId]: result,
         }));
+
+        await loadHotels(countryId);
+
         setStatus("success");
       } catch (err: unknown) {
         if (err instanceof Response) {
@@ -107,11 +156,11 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({
         setError("Невідома помилка при отриманні результатів.");
       }
     },
-    []
+    [loadHotels]
   );
 
   const startSearch = useCallback(
-    async (countryId: string): Promise<void> => {
+    async (countryId: string) => {
       if (!countryId) {
         setError("Будь ласка, оберіть країну.");
         setStatus("error");
@@ -122,6 +171,7 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (cache[countryId]) {
         setCurrentResult(cache[countryId]);
+        await loadHotels(countryId);
         setStatus("success");
         setError(null);
         return;
@@ -143,7 +193,7 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({
         setStatus("error");
       }
     },
-    [cache, pollPrices]
+    [cache, pollPrices, loadHotels]
   );
 
   const reset = useCallback(() => {
@@ -160,6 +210,7 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({
     currentCountryId,
     result: currentResult,
     prices,
+    joinedTours,
     startSearch,
     reset,
   };
@@ -169,12 +220,11 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-export const useSearch = (): SearchContextValue => {
+export const useSearch: () => SearchContextValue = () => {
   const ctx = useContext(SearchContext);
 
   if (!ctx) {
-    throw new Error("useSearch must be used within SearchProvider");
+    throw new Error("useSearch must be used within <SearchProvider>");
   }
-
   return ctx;
 };
