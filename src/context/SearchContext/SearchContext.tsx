@@ -1,15 +1,23 @@
 "use client";
 
-import React, {
+import {
   createContext,
   FC,
   ReactNode,
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import { startSearchPrices, getSearchPrices, getHotels } from "@/lib/api";
+
+import {
+  startSearchPrices,
+  getSearchPrices,
+  getHotels,
+  stopSearchPrices,
+} from "@/lib/api";
+
 import {
   SearchContextValue,
   SearchStatus,
@@ -33,12 +41,22 @@ export const SearchProvider: FC<{ children: ReactNode }> = ({ children }) => {
   );
 
   const [cache, setCache] = useState<Record<string, SearchResultRaw>>({});
-
   const [hotelsCache, setHotelsCache] = useState<
     Record<string, Record<string, Hotel>>
   >({});
 
   const isLoading = status === "loading" || status === "waiting";
+  const isCanceling = status === "canceling";
+
+  const activeTokenRef = useRef<string | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const clearTimer = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  };
 
   const prices = useMemo(
     () => (currentResult ? Object.values(currentResult.pricesById) : []),
@@ -94,19 +112,24 @@ export const SearchProvider: FC<{ children: ReactNode }> = ({ children }) => {
       waitUntil: string | null,
       retryAttempt: number
     ): Promise<void> => {
+      if (token !== activeTokenRef.current) return;
+
       if (waitUntil) {
         const waitMs = new Date(waitUntil).getTime() - Date.now();
         if (waitMs > 0) {
           setStatus("waiting");
-          await new Promise((res) => setTimeout(res, waitMs));
+
+          await new Promise((res) => {
+            timeoutRef.current = setTimeout(res, waitMs);
+          });
         }
       }
 
       try {
         setStatus("loading");
-        setError(null);
 
         const resp = await getSearchPrices(token);
+
         const data = (await resp.json()) as { prices: Record<string, Price> };
 
         const result: SearchResultRaw = {
@@ -116,22 +139,13 @@ export const SearchProvider: FC<{ children: ReactNode }> = ({ children }) => {
         };
 
         setCurrentResult(result);
-        setCache((prev) => ({
-          ...prev,
-          [countryId]: result,
-        }));
-
+        setCache((prev) => ({ ...prev, [countryId]: result }));
         await loadHotels(countryId);
 
         setStatus("success");
       } catch (err: unknown) {
         if (err instanceof Response) {
-          let body: any = null;
-          try {
-            body = await err.json();
-          } catch {
-            body = null;
-          }
+          const body = await err.json().catch(() => null);
 
           if (err.status === 425 && body?.waitUntil) {
             return pollPrices(token, countryId, body.waitUntil, retryAttempt);
@@ -159,6 +173,21 @@ export const SearchProvider: FC<{ children: ReactNode }> = ({ children }) => {
     [loadHotels]
   );
 
+  const stopActiveSearch = useCallback(async () => {
+    const token = activeTokenRef.current;
+    if (!token) return;
+
+    setStatus("canceling");
+    clearTimer();
+
+    try {
+      await stopSearchPrices(token);
+    } catch {}
+
+    activeTokenRef.current = null;
+    setStatus("idle");
+  }, []);
+
   const startSearch = useCallback(
     async (countryId: string) => {
       if (!countryId) {
@@ -167,36 +196,40 @@ export const SearchProvider: FC<{ children: ReactNode }> = ({ children }) => {
         return;
       }
 
+      if (activeTokenRef.current) {
+        await stopActiveSearch();
+      }
+
+      setError(null);
       setCurrentCountryId(countryId);
+      setStatus("loading");
 
       if (cache[countryId]) {
+        activeTokenRef.current = null;
         setCurrentResult(cache[countryId]);
         await loadHotels(countryId);
         setStatus("success");
-        setError(null);
         return;
       }
 
       try {
-        setStatus("loading");
-        setError(null);
-
         const resp = await startSearchPrices(countryId);
-        const { token, waitUntil } = (await resp.json()) as {
-          token: string;
-          waitUntil: string;
-        };
+        const { token, waitUntil } = await resp.json();
+
+        activeTokenRef.current = token;
 
         await pollPrices(token, countryId, waitUntil, 0);
-      } catch (err: unknown) {
-        setError("Не вдалося розпочати пошук турів.");
+      } catch {
         setStatus("error");
+        setError("Не вдалося розпочати пошук турів.");
       }
     },
-    [cache, pollPrices, loadHotels]
+    [cache, pollPrices, stopActiveSearch, loadHotels]
   );
 
   const reset = useCallback(() => {
+    clearTimer();
+    activeTokenRef.current = null;
     setStatus("idle");
     setError(null);
     setCurrentResult(null);
@@ -207,6 +240,7 @@ export const SearchProvider: FC<{ children: ReactNode }> = ({ children }) => {
     status,
     error,
     isLoading,
+    isCanceling,
     currentCountryId,
     result: currentResult,
     prices,
@@ -220,7 +254,7 @@ export const SearchProvider: FC<{ children: ReactNode }> = ({ children }) => {
   );
 };
 
-export const useSearch: () => SearchContextValue = () => {
+export const useSearch = (): SearchContextValue => {
   const ctx = useContext(SearchContext);
 
   if (!ctx) {

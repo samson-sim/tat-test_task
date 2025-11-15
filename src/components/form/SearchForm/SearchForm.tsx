@@ -6,7 +6,7 @@ import { SearchInput } from "../../inputs";
 import { useSearch } from "../../../context";
 
 export const SearchForm: FC = () => {
-  const { startSearch } = useSearch();
+  const { startSearch, isCanceling } = useSearch();
 
   const handleSubmit = async (countryId: string) => {
     await startSearch(countryId);
@@ -36,7 +36,8 @@ export const SearchForm: FC = () => {
 
           <button
             type="submit"
-            className="px-5 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium hover:opacity-90 transition cursor-pointer"
+            disabled={isCanceling}
+            className="px-5 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium hover:opacity-90 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Знайти
           </button>

@@ -1,4 +1,10 @@
-export type SearchStatus = "idle" | "loading" | "waiting" | "success" | "error";
+export type SearchStatus =
+  | "idle"
+  | "loading"
+  | "waiting"
+  | "success"
+  | "error"
+  | "canceling";
 
 export interface Hotel {
   id: number;
@@ -38,6 +44,7 @@ export interface SearchContextValue {
   status: SearchStatus;
   error: string | null;
   isLoading: boolean;
+  isCanceling: boolean;
   currentCountryId: string | null;
   result: SearchResultRaw | null;
   prices: Price[];
