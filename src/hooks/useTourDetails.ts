@@ -19,11 +19,15 @@ export const useTourDetails = ({ priceId, hotelId }: UseTourDetailsProps) => {
         setLoading(true);
         setError(null);
 
-        const priceResp = await getPrice(priceId);
-        const price = await priceResp.json();
+        const [priceResp, hotelResp] = await Promise.all([
+          getPrice(priceId),
+          getHotel(Number(hotelId)),
+        ]);
 
-        const hotelResp = await getHotel(Number(hotelId));
-        const hotel = await hotelResp.json();
+        const [price, hotel] = await Promise.all([
+          priceResp.json(),
+          hotelResp.json(),
+        ]);
 
         setData({
           priceId,
@@ -38,7 +42,7 @@ export const useTourDetails = ({ priceId, hotelId }: UseTourDetailsProps) => {
     };
 
     load();
-  }, [priceId]);
+  }, [priceId, hotelId]);
 
   return { isLoading, error, data };
 };

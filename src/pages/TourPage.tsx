@@ -4,30 +4,34 @@ import { useParams } from "next/navigation";
 import { useTourDetails } from "../hooks/useTourDetails";
 import { Loader, ErrorView, TourPageView } from "../components/views";
 
-export const TourPage = () => {
+const TourPage = () => {
   const { priceId, hotelId } = useParams<{
     priceId: string;
     hotelId: string;
-  }>();
-
-  console.log(priceId, hotelId);
+  }>() ?? { priceId: "", hotelId: "" };
 
   const { isLoading, error, data } = useTourDetails({
     priceId: priceId,
     hotelId: hotelId,
   });
 
-  if (isLoading) {
-    return <Loader />;
-  }
-
-  if (error) {
-    return <ErrorView error={error} />;
-  }
-
   return (
-    <div className="w-[700px] mx-auto p-6">
-      <TourPageView {...data} />
-    </div>
+    <main className="w-full px-4 py-10 flex justify-center min-h-[60vh]">
+      {isLoading && <Loader />}
+
+      {!isLoading && error && (
+        <div className="max-w-3xl w-full bg-white rounded-2xl shadow p-6">
+          <ErrorView error={error} />
+        </div>
+      )}
+
+      {!isLoading && !error && data && (
+        <div className="w-full max-w-3xl">
+          <TourPageView {...data} />
+        </div>
+      )}
+    </main>
   );
 };
+
+export default TourPage;

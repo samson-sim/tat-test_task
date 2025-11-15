@@ -46,6 +46,7 @@ export const TourCard: FC<TourCardProps> = ({
         <Link
           href={`/tour/${id}/${hotelId}`}
           className="block text-center mt-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
+          aria-label={`Відкрити подробиці туру для ${hotelName}`}
         >
           Відкрити ціну
         </Link>

@@ -52,9 +52,16 @@ export const AutocompleteView: FC<AutocompleteViewProps> = ({
           placeholder={placeholder}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           autoComplete="off"
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-autocomplete="list"
         />
         {isLoading && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <div
+            className="absolute right-3 top-1/2 -translate-y-1/2"
+            role="status"
+            aria-label="Завантаження"
+          >
             <ImSpinner2 className="w-5 h-5 text-blue-500 animate-spin" />
           </div>
         )}
@@ -63,6 +70,7 @@ export const AutocompleteView: FC<AutocompleteViewProps> = ({
             type="button"
             className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
             onMouseDown={onReset}
+            aria-label="Очистити поле пошуку"
           >
             <HiOutlineX className="w-5 h-5 text-gray-500" />
           </button>
@@ -70,7 +78,11 @@ export const AutocompleteView: FC<AutocompleteViewProps> = ({
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+        <div
+          role="listbox"
+          aria-busy={isLoading}
+          className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto"
+        >
           {!options?.length && !isLoading && (
             <div className="px-4 py-3 text-gray-500 text-sm">{emptyValue}</div>
           )}
@@ -81,6 +93,8 @@ export const AutocompleteView: FC<AutocompleteViewProps> = ({
                 key={option.id}
                 className="w-full px-4 py-3 text-left hover:bg-gray-100 flex items-center gap-3 transition-colors"
                 onMouseDown={() => onSelect(option)}
+                type="button"
+                role="option"
               >
                 {renderOption(option)}
               </button>

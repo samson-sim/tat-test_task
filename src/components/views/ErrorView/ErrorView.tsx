@@ -5,5 +5,9 @@ interface ErrorViewProps {
 }
 
 export const ErrorView: FC<ErrorViewProps> = ({ error }) => {
-  return <div className="text-red-500">{error}</div>;
+  return (
+    <div className="text-red-600 font-medium" role="alert">
+      {error}
+    </div>
+  );
 };

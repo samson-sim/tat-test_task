@@ -2,13 +2,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Autocomplete } from "../Autocomplete";
 import { getCountries, searchGeo } from "@/lib/api";
-import { City, CountriesMap, GeoEntity, Hotel } from "@/types/api";
+import { CountriesMap, GeoEntity } from "@/types/api";
 import {
   HiOutlineBuildingOffice2,
   HiOutlineGlobeAlt,
   HiOutlineHome,
 } from "react-icons/hi2";
-import { useFormContext, useWatch } from "react-hook-form";
+import { useWatch } from "react-hook-form";
 
 const getIcon = ({
   type,

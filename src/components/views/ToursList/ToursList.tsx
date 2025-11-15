@@ -10,27 +10,42 @@ export const ToursList = () => {
 
   if (status === "idle") return null;
 
-  if (isLoading) {
-    return <Loader />;
-  }
-
-  if (error) {
-    return <ErrorView error={error} />;
-  }
-
-  if (!tours.length) {
-    return (
-      <div className="text-center text-gray-500">
-        За вашим запитом турів не знайдено
-      </div>
-    );
-  }
+  const hasResults = Boolean(tours.length);
 
   return (
-    <div className="w-[700px] mx-auto p-[25px] bg-white rounded-2xl shadow grid gap-5 md:grid-cols-2">
-      {tours.map((tour) => (
-        <TourCard key={tour.id} {...tour} />
-      ))}
-    </div>
+    <section
+      aria-label="Результати пошуку турів"
+      aria-busy={isLoading}
+      className="w-full max-w-5xl"
+    >
+      {isLoading && (
+        <div className="bg-white rounded-2xl shadow p-6">
+          <Loader />
+        </div>
+      )}
+
+      {!isLoading && error && (
+        <div className="bg-white rounded-2xl shadow p-6">
+          <ErrorView error={error} />
+        </div>
+      )}
+
+      {!isLoading && !error && !hasResults && (
+        <p className="text-center text-gray-600 bg-white rounded-2xl shadow p-8">
+          За вашим запитом турів не знайдено. Спробуйте змінити напрямок або
+          дати подорожі.
+        </p>
+      )}
+
+      {!isLoading && !error && hasResults && (
+        <ul className="grid gap-5 md:grid-cols-2">
+          {tours.map((tour) => (
+            <li key={tour.id} className="list-none">
+              <TourCard {...tour} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 };
